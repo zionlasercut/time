@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>膠板生產時間計算器</title>
+  <style>
+    body { margin:0; padding:0; font-family:"Microsoft JhengHei", sans-serif; background:#f4f8fc; }
+    .container { max-width:700px; margin:40px auto; background:#fff; padding:24px;
+                 border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+    h2 { text-align:center; color:#2a3b66; margin-bottom:24px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border:1px solid #cdd2da; padding:8px; text-align:center; font-size:0.95em; }
+    th { background:#e9edf5; color:#2a3b66; }
+    .section-header td { background:#d9e6fa; color:#304a75; font-weight:600; text-align:left; padding-left:12px; }
+    select, input[type=number] {
+      width:88%; padding:6px; border:1px solid #babfd1; border-radius:6px;
+      background:#f3f6fa; font-size:1em;
+    }
+    .calc-result { color:#e24a2a; font-weight:600; }
+    .summary-row td { background:#f1f2f5; font-weight:700; }
+    .btn { float:right; margin-top:16px; padding:10px 24px; background:#2457e6;
+           color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:1em; }
+    .btn:hover { background:#1b43b1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>膠板生產時間計算器</h2>
+    <table>
+      <tr><th>項目</th><th>選項</th><th>時間 (分)</th></tr>
+      <tr class="section-header"><td colspan="3">1. 量度及核對呎吋</td></tr>
+      <tr>
+        <td>比例?</td>
+        <td><select id="scale"><option>載入中…</option></select></td>
+        <td id="scale_time" class="calc-result">0</td>
+      </tr>
+      <tr>
+        <td>原廠模型?</td>
+        <td><select id="original"><option>載入中…</option></select></td>
+        <td id="original_time" class="calc-result">0</td>
+      </tr>
+      <tr>
+        <td>涉及曲面?</td>
+        <td><select id="curve"><option>載入中…</option></select></td>
+        <td id="curve_time" class="calc-result">0</td>
+      </tr>
+      <tr class="section-header"><td colspan="3">2. 繪圖</td></tr>
+      <tr>
+        <td>有參考圖?</td>
+        <td><select id="reference"><option>載入中…</option></select></td>
+        <td id="reference_time" class="calc-result">0</td>
+      </tr>
+      <tr>
+        <td>涉及疊加?</td>
+        <td><select id="stack"><option>載入中…</option></select></td>
+        <td id="stack_time" class="calc-result">0</td>
+      </tr>
+      <tr>
+        <td>膠板大小?</td>
+        <td><select id="size"><option>載入中…</option></select></td>
+        <td id="size_time" class="calc-result">0</td>
+      </tr>
+      <tr>
+        <td>膠板厚度?</td>
+        <td><select id="thickness"><option>載入中…</option></select></td>
+        <td id="thickness_time" class="calc-result">0</td>
+      </tr>
+      <tr class="section-header"><td colspan="3">3. 列印膠板</td></tr>
+      <tr>
+        <td>涉及疊加?</td>
+        <td><select id="print_stack"><option>載入中…</option></select></td>
+        <td id="print_stack_time" class="calc-result">0</td>
+      </tr>
+      <tr>
+        <td>涉及不同厚度膠板?</td>
+        <td><select id="print_thick"><option>載入中…</option></select></td>
+        <td id="print_thick_time" class="calc-result">0</td>
+      </tr>
+      <tr>
+        <td>額外列印？<br><small>(輸入塊數)</small></td>
+        <td><input type="number" id="extra_qty" min="0" value="0"></td>
+        <td id="extra_time" class="calc-result">0</td>
+      </tr>
+      <tr class="summary-row">
+        <td colspan="2">總時間 (分鐘)</td>
+        <td id="total_time" class="calc-result">0</td>
+      </tr>
+    </table>
+    <button class="btn" onclick="clearAll()">清除</button>
+  </div>
+
+  <!-- 載入 SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    // 定義要讀取的工作表對應
+    const CONFIG = {
+      scale:       { sheet:'比例',         type:'scale' },
+      original:    { sheet:'原廠模型',     type:'group' },
+      curve:       { sheet:'涉及曲面',     type:'group' },
+      reference:   { sheet:'有參考圖',     type:'group' },
+      stack:       { sheet:'繪圖疊加',     type:'group' },
+      size:        { sheet:'膠板大小',     type:'simple'},
+      thickness:   { sheet:'膠板厚度',     type:'simple'},
+      print_stack: { sheet:'列印疊加',     type:'simple'},
+      print_thick: { sheet:'列印不同厚度', type:'simple'},
+      extra:       { sheet:'額外列印',     type:'range' }
+    };
+    const store = {};
+
+    // 1. 載入並解析 Excel
+    async function loadExcel() {
+      const resp = await fetch('Working_time.xlsx');
+      const buf  = await resp.arrayBuffer();
+      const wb   = XLSX.read(buf, { type:'array' });
+      // 對每個想要的 sheet 拿到二維陣列 (header=1)
+      for (let key in CONFIG) {
+        const name = CONFIG[key].sheet;
+        const ws = wb.Sheets[name];
+        if (!ws) throw new Error(`${name} 找不到`);
+        store[key] = XLSX.utils.sheet_to_json(ws, { header:1 });
+      }
+    }
+
+    // 2. 建構下拉與事件、計算邏輯同前面範例
+    function buildScale() {
+      const sel = document.getElementById('scale');
+      const rows = store.scale.slice(1);
+      sel.innerHTML = '<option value="">— 請選 —</option>'
+        + rows.map(r=>`<option value="${r[0]}|${r[1]}|${r[2]}">${r[0]}</option>`).join('');
+    }
+
+    function buildOthers() {
+      const grp = (document.getElementById('scale').value.split('|')[1]||'');
+      Object.keys(CONFIG)
+        .filter(id=>id!=='scale' && id!=='extra')
+        .forEach(id=>{
+          const sel = document.getElementById(id);
+          const rows = store[id].slice(1);
+          if (CONFIG[id].type==='group') {
+            sel.innerHTML = '<option value="">—</option>'
+              + rows.filter(r=>r[0]===grp)
+                    .map(r=>`<option value="${r[2]}">${r[1]}</option>`).join('');
+          } else {
+            sel.innerHTML = '<option value="">—</option>'
+              + rows.map(r=>`<option value="${r[1]}">${r[0]}</option>`).join('');
+          }
+        });
+    }
+
+    function calcExtra(qty) {
+      const rows = store.extra.slice(1);
+      for (let r of rows) {
+        const opt=r[1], t=+r[2];
+        if (opt==='No' && qty===0) return t;
+        if (/^(\d+)塊$/.test(opt) && qty===+opt.match(/^(\d+)/)[1]) return t;
+        if (/^>(\d+)塊$/.test(opt) && qty>+opt.match(/^>(\d+)/)[1]) return t;
+      }
+      return 0;
+    }
+
+    function bindEvents() {
+      document.getElementById('scale').onchange = () => {
+        buildOthers(); calcAll();
+      };
+      ['original','curve','reference','stack','size','thickness','print_stack','print_thick']
+      .forEach(id=> document.getElementById(id).onchange = calcAll);
+      document.getElementById('extra_qty').oninput = calcAll;
+    }
+
+    function calcAll() {
+      const vals = [];
+      vals[0] = +(document.getElementById('scale').value.split('|')[2]||0);
+      ['original','curve','reference','stack','size','thickness','print_stack','print_thick']
+      .forEach((id,i)=> vals[i+1] = +document.getElementById(id).value||0);
+      vals[9] = calcExtra(+document.getElementById('extra_qty').value||0);
+
+      ['scale_time','original_time','curve_time','reference_time',
+       'stack_time','size_time','thickness_time',
+       'print_stack_time','print_thick_time','extra_time']
+      .forEach((id,i)=> document.getElementById(id).textContent = vals[i]);
+
+      document.getElementById('total_time').textContent =
+        vals.reduce((a,b)=>a+b,0);
+    }
+
+    function clearAll() {
+      document.querySelectorAll('select').forEach(s=>s.selectedIndex=0);
+      document.getElementById('extra_qty').value = 0;
+      buildScale(); buildOthers(); calcAll();
+    }
+
+    // 3. 一次啟動
+    window.onload = async () => {
+      try {
+        await loadExcel();
+        buildScale();
+        buildOthers();
+        bindEvents();
+        calcAll();
+      } catch (e) {
+        console.error(e);
+        alert('載入 Excel 發生錯誤，請確認 Working_time.xlsx 與 sheet 名稱');
+      }
+    };
+  </script>
+</body>
+
+</html>
+
