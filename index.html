@@ -78,9 +78,9 @@
         <td id="print_thick_time" class="calc-result">0</td>
       </tr>
       <tr>
-        <td>額外列印？<br><small>(輸入塊數)</small></td>
-        <td><input type="number" id="extra_qty" min="0" value="0"></td>
-        <td id="extra_time" class="calc-result">0</td>
+        <td>列印數量？<br><small>(如鏡射便當2塊)</small></td>
+        <td><input type="number" id="print-count" min="0" value="0"></td>
+        <td id="print_time" class="calc-result">0</td>
       </tr>
       <tr class="summary-row">
         <td colspan="2">總時間 (分鐘)</td>
@@ -104,8 +104,14 @@
       thickness:   { sheet:'膠板厚度',     type:'simple'},
       print_stack: { sheet:'列印疊加',     type:'simple'},
       print_thick: { sheet:'列印不同厚度', type:'simple'},
-      extra:       { sheet:'額外列印',     type:'range' }
-    };
+      extra:       { sheet:'列印數量',     type:'range' }
+    };  // 請將 offsetValue 改為您需要的常數
+  const offsetValue   = 10;
+  // 假設已有一個 id="board-size" 的輸入框用來取「膠板大小數值」
+  const sizeInput     = document.getElementById('board-size');
+  const countInput    = document.getElementById('print-count');
+  const printTimeSpan = document.getElementById('print-time');
+
     const store = {};
 
     // 1. 載入並解析 Excel
@@ -203,6 +209,23 @@
         alert('載入 Excel 發生錯誤，請確認 Working_time.xlsx 與 sheet 名稱');
       }
     };
+      function calcPrintTime() {
+    const size  = parseFloat(sizeInput.value)  || 0;
+    const count = parseFloat(countInput.value) || 0;
+    // 新公式：(膠板大小數值 + offsetValue) × (列印數量 / 4)
+    const minutes = (size + offsetValue) * (count / 4);
+    printTimeSpan.textContent = minutes.toFixed(2) + ' 分鐘';
+    // 若有更新總時間的函式，則呼叫它
+    if (typeof updateTotalTime === 'function') {
+      updateTotalTime();
+    }
+  }
+
+  sizeInput.addEventListener('change', calcPrintTime);
+  countInput.addEventListener('input',  calcPrintTime);
+
+  // 初次計算
+  calcPrintTime();
   </script>
 </body>
 
