@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>膠板生產時間計算器</title>
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#ffffff; --border:#e5e7eb; --muted:#6b7280;
+      --title:#111827; --accent:#3b82f6; --danger:#ef4444; --thead:#f8fafc; --group:#e6effe;
+      --shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0b1020; --card:#0e1426; --border:#1f2a44; --muted:#93a4c0;
+        --title:#e5ecff; --accent:#5ea0ff; --danger:#ff7070; --thead:#0f1a33; --group:#0d2a5a;
+        --shadow:none;
+      }
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--title);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans";}
+    .wrap{max-width:960px;margin:0 auto;padding:16px}
+    h1{margin:8px 0 12px;font-size:28px;font-weight:800}
+    .status{color:var(--muted);margin:0 0 10px 2px;font-size:14px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    thead th{background:var(--thead);text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:700}
+    tbody td, tfoot td{border-bottom:1px solid var(--border)}
+    /* 調整：群組標題靠左並簡化樣式 */
+    .group-row th{
+      background:var(--group);
+      color:var(--title);
+      font-weight:800;
+      padding:10px 12px;
+      border-top:1px solid var(--border);
+      border-bottom:1px solid var(--border);
+      text-align:left;          /* 由預設置中改為靠左 */
+      letter-spacing:.2px;
+    }
+    .label{padding:10px 12px}
+    .ctrl{padding:10px 12px}
+    .time{padding:10px 12px;text-align:right;color:var(--danger);font-variant-numeric:tabular-nums}
+    select,input[type="number"]{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:transparent;color:inherit}
+    option{color:initial}
+    .hint{color:var(--muted);font-size:13px;padding:8px 12px}
+    tfoot td{background:var(--thead)}
+    .tfoot-label{padding:10px 12px;font-weight:800}
+    .tfoot-time{padding:10px 12px;text-align:right;color:var(--danger);font-weight:900;min-width:4ch}
+    .tip{color:var(--muted);font-size:12px;padding-right:12px;text-align:right}
+    .actions{display:flex;justify-content:flex-end;padding:12px}
+    .btn{padding:10px 16px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#fff;font-weight:800}
+    .btn:active{transform:translateY(1px)}
+    @media (max-width:640px){
+      .wrap{padding:10px}
+      h1{font-size:22px}
+      thead th:nth-child(1){width:42%}
+      thead th:nth-child(2){width:43%}
+      thead th:nth-child(3){width:15%}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>膠板生產時間計算器</h1>
+    <div class="status" id="status">狀態：正在從同資料夾讀取 working_time.xlsx…</div>
+
+    <div class="card">
+      <table aria-label="膠板生產時間計算器">
+        <thead>
+          <tr>
+            <th style="width:40%">項目</th>
+            <th style="width:45%">選項</th>
+            <th style="width:15%;text-align:right">時間 (分)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="group-row"><th colspan="3">1. 量度及核對呎吋</th></tr>
+          <tr>
+            <td class="label">比例?</td>
+            <td class="ctrl"><select id="scale"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-scale">0</td>
+          </tr>
+          <tr>
+            <td class="label">原廠模型?</td>
+            <td class="ctrl"><select id="oem"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-oem">0</td>
+          </tr>
+          <tr>
+            <td class="label">涉及曲面?</td>
+            <td class="ctrl"><select id="curved"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-curved">0</td>
+          </tr>
+          <tr><td colspan="3" class="hint">量度與核對通常只做一次，不乘以數量。</td></tr>
+
+          <tr class="group-row"><th colspan="3">2. 繪圖</th></tr>
+          <tr>
+            <td class="label">有參考圖?</td>
+            <td class="ctrl"><select id="hasRef"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-ref">0</td>
+          </tr>
+          <tr>
+            <td class="label">涉及疊加?</td>
+            <td class="ctrl"><select id="drawOverlay"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-drawOverlay">0</td>
+          </tr>
+          <tr>
+            <td class="label">膠板大小?</td>
+            <td class="ctrl"><select id="size"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-size">0</td>
+          </tr>
+
+          <tr class="group-row"><th colspan="3">3. 列印膠板</th></tr>
+          <tr>
+            <td class="label">膠板厚度?</td>
+            <td class="ctrl"><select id="thickness"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-thickness">0.0</td>
+          </tr>
+          <tr>
+            <td class="label">涉及疊加?（列印階段額外加總項）</td>
+            <td class="ctrl"><select id="printOverlay"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-printOverlay">0</td>
+          </tr>
+          <tr>
+            <td class="label">涉及不同厚度膠板?（列印階段額外加總項）</td>
+            <td class="ctrl"><select id="multiThickness"><option value="">— 請選擇 —</option></select></td>
+            <td class="time" id="t-multiThickness">0</td>
+          </tr>
+          <tr>
+            <td class="label">列印數量？<div class="hint">(輸入塊數)</div></td>
+            <td class="ctrl"><input id="printQty" type="number" inputmode="numeric" min="0" step="1" value=""></td>
+            <td class="time" id="t-printTotal">0.0</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td class="tfoot-label">總時間 (分鐘)</td>
+            <td class="tip" id="tip-grand"></td>
+            <td class="tfoot-time" id="t-grand"></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="actions">
+        <button class="btn" id="btnClear" type="button">清除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+
+    const E = {
+      scale: $('scale'),
+      oem: $('oem'),
+      curved: $('curved'),
+      hasRef: $('hasRef'),
+      drawOverlay: $('drawOverlay'),
+      size: $('size'),
+      thickness: $('thickness'),
+      printOverlay: $('printOverlay'),
+      multiThickness: $('multiThickness'),
+      printQty: $('printQty'),
+      t: {
+        scale: $('t-scale'),
+        oem: $('t-oem'),
+        curved: $('t-curved'),
+        ref: $('t-ref'),
+        drawOverlay: $('t-drawOverlay'),
+        size: $('t-size'),
+        thickness: $('t-thickness'),
+        printOverlay: $('t-printOverlay'),
+        multiThickness: $('t-multiThickness'),
+        printTotal: $('t-printTotal'),
+        grand: $('t-grand')
+      },
+      tipGrand: $('tip-grand'),
+      status: $('status')
+    };
+
+    let tables = null;
+    let currentGroup = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      attachEvents();
+      loadExcel();
+    });
+
+    async function loadExcel(){
+      try{
+        E.status.textContent = '狀態：正在從同資料夾讀取 working_time.xlsx…';
+        const res = await fetch('working_time.xlsx', { cache: 'no-store' });
+        if(!res.ok) throw new Error('讀取 working_time.xlsx 失敗');
+        const buf = await res.arrayBuffer();
+        const wb = XLSX.read(buf, { type:'array' });
+        tables = parseWorkbookHeaderAware(wb);
+        fillSelects();
+        compute();
+        E.status.textContent = '狀態：資料已載入';
+      }catch(err){
+        console.error(err);
+        E.status.textContent = '狀態：讀取失敗，請確認 working_time.xlsx 與本檔同資料夾。';
+      }
+    }
+
+    function sheetMatrix(wb, name){
+      const ws = wb.Sheets[name];
+      if(!ws) return [];
+      return XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
+    }
+    function detectHeaderIndex(matrix){
+      const keys = ['選項','Option','時間','比例','比例?','分組','群組','Group'];
+      const isKey = v => keys.some(k => String(v||'').includes(k));
+      for(let i=0;i<Math.min(10, matrix.length);i++){
+        const row = matrix[i] || [];
+        if(row.some(isKey)) return i;
+      }
+      return 0;
+    }
+    function rowsAfterHeader(matrix, headerIdx){
+      const header = (matrix[headerIdx] || []).map(h => String(h||'').trim());
+      const rows = [];
+      for(let i=headerIdx+1;i<matrix.length;i++){
+        const r = matrix[i] || [];
+        if(r.every(c => String(c).trim()==='')) continue;
+        const obj = {};
+        for(let j=0;j<header.length;j++){
+          obj[header[j] || `COL${j}`] = r[j];
+        }
+        rows.push(obj);
+      }
+      return { header, rows };
+    }
+    function take(obj, keys, fallback=''){
+      for(const k of keys){
+        if(k in obj && obj[k] !== undefined && obj[k] !== '') return obj[k];
+      }
+      for(const kk in obj){
+        if(keys.some(k => String(kk).includes(String(k)))) return obj[kk];
+      }
+      return fallback;
+    }
+    function parseWorkbookHeaderAware(wb){
+      const mScale = sheetMatrix(wb,'比例');
+      const idxS = detectHeaderIndex(mScale);
+      const dS = rowsAfterHeader(mScale, idxS).rows;
+      const scale = dS.map(r => ({
+        label: String(take(r, ['比例?','比例','選項'], '')).trim(),
+        group: String(take(r, ['分組','群組','Group'], 'A')).trim() || 'A',
+        time: Number(take(r, ['時間'], 0)) || 0
+      })).filter(x => x.label);
+
+      function yesNoByGroup(sheet){
+        const m = sheetMatrix(wb, sheet);
+        const idx = detectHeaderIndex(m);
+        const rows = rowsAfterHeader(m, idx).rows;
+        const map = {};
+        rows.forEach(r=>{
+          const g = String(take(r, ['分組','群組','Group'], '')).trim();
+          const opt = String(take(r, ['選項','Option'], '')).trim();
+          const t = Number(take(r, ['時間'], 0)) || 0;
+          if(!g || !opt) return;
+          if(!map[g]) map[g] = {};
+          map[g][opt] = t;
+        });
+        return map;
+      }
+      const oem = yesNoByGroup('原廠模型');
+      const curved = yesNoByGroup('涉及曲面');
+      const hasRef = yesNoByGroup('有參考圖');
+      const drawOverlay = yesNoByGroup('繪圖疊加');
+
+      function list(sheet){
+        const m = sheetMatrix(wb, sheet);
+        const idx = detectHeaderIndex(m);
+        const rows = rowsAfterHeader(m, idx).rows;
+        return rows.map(r => ({
+          label: String(take(r, ['選項','Option'], '')).trim(),
+          time: Number(take(r, ['時間'], 0)) || 0
+        })).filter(x => x.label);
+      }
+      const size = list('膠板大小');
+      const thickness = list('膠板厚度');
+      const printOverlay = list('列印疊加');
+      const multiThickness = list('列印不同厚度');
+
+      return { scale, oem, curved, hasRef, drawOverlay, size, thickness, printOverlay, multiThickness };
+    }
+
+    function fillSelectOptions(el, arr){
+      el.innerHTML = '<option value="">— 請選擇 —</option>' +
+        arr.map((r,i)=>`<option value="${i}">${r.label}</option>`).join('');
+    }
+    function fillYesNo(el){
+      el.innerHTML = '<option value="">— 請選擇 —</option>' +
+        '<option value="Yes">Yes</option><option value="No">No</option>';
+    }
+    function fillSelects(){
+      fillSelectOptions(E.scale, tables.scale);
+      [E.oem,E.curved,E.hasRef,E.drawOverlay].forEach(fillYesNo);
+      fillSelectOptions(E.size, tables.size);
+      fillSelectOptions(E.thickness, tables.thickness);
+      fillSelectOptions(E.printOverlay, tables.printOverlay);
+      fillSelectOptions(E.multiThickness, tables.multiThickness);
+    }
+
+    function isAllFilled(){
+      const chosen =
+        E.scale.value!=='' &&
+        E.oem.value!=='' &&
+        E.curved.value!=='' &&
+        E.hasRef.value!=='' &&
+        E.drawOverlay.value!=='' &&
+        E.size.value!=='' &&
+        E.thickness.value!=='' &&
+        E.printOverlay.value!=='' &&
+        E.multiThickness.value!=='';
+      const qty = Number.parseInt(E.printQty.value, 10);
+      return chosen && Number.isInteger(qty) && qty >= 0;
+    }
+
+    function byGroup(tbl, val){
+      if(!currentGroup || !val) return 0;
+      const g = tbl[currentGroup] || {};
+      return Number(g[val]) || 0;
+    }
+
+    const fmt0 = n => Number.isFinite(n) ? String(Math.round(n)) : '0';
+    const fmt1 = n => Number.isFinite(n) ? Number(n).toFixed(1) : '0.0';
+
+    function compute(){
+      if(!tables) return;
+
+      let tScale = 0;
+      if(E.scale.value !== ''){
+        const row = tables.scale[Number(E.scale.value)];
+        tScale = row?.time || 0;
+        currentGroup = row?.group || null;
+      }else{
+        currentGroup = null;
+      }
+      E.t.scale.textContent = fmt0(tScale);
+
+      const tOem = byGroup(tables.oem, E.oem.value);
+      const tCurved = byGroup(tables.curved, E.curved.value);
+      E.t.oem.textContent = fmt0(tOem);
+      E.t.curved.textContent = fmt0(tCurved);
+
+      const tRef = byGroup(tables.hasRef, E.hasRef.value);
+      const tDrawOverlay = byGroup(tables.drawOverlay, E.drawOverlay.value);
+      const tSize = E.size.value!=='' ? (tables.size[Number(E.size.value)].time || 0) : 0;
+      const tThickness = E.thickness.value!=='' ? (tables.thickness[Number(E.thickness.value)].time || 0) : 0;
+      E.t.ref.textContent = fmt0(tRef);
+      E.t.drawOverlay.textContent = fmt0(tDrawOverlay);
+      E.t.size.textContent = fmt0(tSize);
+
+      // 膠板厚度? 於列印區塊，顯示 1 位小數
+      E.t.thickness.textContent = fmt1(tThickness);
+
+      const tPrintOverlay = E.printOverlay.value!=='' ? (tables.printOverlay[Number(E.printOverlay.value)].time || 0) : 0;
+      const tMultiThickness = E.multiThickness.value!=='' ? (tables.multiThickness[Number(E.multiThickness.value)].time || 0) : 0;
+      E.t.printOverlay.textContent = fmt0(tPrintOverlay);
+      E.t.multiThickness.textContent = fmt0(tMultiThickness);
+
+      const qty = Number.parseInt(E.printQty.value, 10);
+      const isQtyValid = Number.isInteger(qty) && qty >= 0;
+      const tPrintTotal = isQtyValid ? (tSize + tThickness) * (qty / 4) : 0;
+      E.t.printTotal.textContent = fmt1(tPrintTotal);
+
+      const measureSum = tScale + tOem + tCurved;
+      const drawSum = tRef + tDrawOverlay + tSize + tThickness;
+      const grand = measureSum + drawSum + tPrintTotal + tPrintOverlay + tMultiThickness;
+
+      if(isAllFilled()){
+        E.t.grand.textContent = fmt1(grand);
+        E.tipGrand.textContent = '';
+      }else{
+        E.t.grand.textContent = '';
+        E.tipGrand.textContent = '請先完成所有選項與列印數量，再顯示總時間';
+      }
+    }
+
+    function attachEvents(){
+      [E.scale,E.oem,E.curved,E.hasRef,E.drawOverlay,E.size,E.thickness,E.printOverlay,E.multiThickness]
+        .forEach(el => el.addEventListener('change', compute));
+      E.printQty.addEventListener('input', compute);
+      $('btnClear').addEventListener('click', () => {
+        document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+        E.printQty.value = '';
+        E.t.grand.textContent = '';
+        E.tipGrand.textContent = '';
+        Object.values(E.t).forEach(td => { if(td && td.id!=='t-grand') td.textContent = '0'; });
+        compute();
+      });
+    }
+  </script>
+</body>
+</html>
