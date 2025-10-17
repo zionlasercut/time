@@ -169,9 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadExcel(){
   try{
-    E.status.textContent = '狀態：正在從同資料夾讀取 working_time.xlsx…';
-    const res = await fetch('working_time.xlsx', { cache:'no-store' });
-    if(!res.ok) throw new Error('無法讀取 working_time.xlsx');
+    E.status.textContent = '狀態：正在從同資料夾讀取 Working_time.xlsx…';
+    const res = await fetch('Working_time.xlsx', { cache:'no-store' });
+    if(!res.ok) throw new Error('無法讀取 Working_time.xlsx');
     const buf = await res.arrayBuffer();
     const wb = XLSX.read(buf, { type:'array' });
     tables = parseWorkbookHeaderAware(wb); // 只改在這裡：用「讀取標題」解析
@@ -180,7 +180,7 @@ async function loadExcel(){
     E.status.textContent = '狀態：資料已載入';
   }catch(err){
     console.error(err);
-    E.status.textContent = '狀態：讀取失敗，請確認 working_time.xlsx 與本檔同資料夾。';
+    E.status.textContent = '狀態：讀取失敗，請確認 Working_time.xlsx 與本檔同資料夾。';
   }
 }
 
@@ -360,3 +360,4 @@ function attachEvents(){
 </body>
 
 </html>
+
