@@ -76,17 +76,17 @@
         <tbody>
           <tr class="group-row"><th colspan="3">1. 量度及核對呎吋</th></tr>
           <tr>
-            <td class="label">比例?</td>
+            <td class="label">比例</td>
             <td class="ctrl"><select id="scale"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-scale">0</td>
           </tr>
           <tr>
-            <td class="label">原廠模型?</td>
+            <td class="label">原廠模型</td>
             <td class="ctrl"><select id="oem"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-oem">0</td>
           </tr>
           <tr>
-            <td class="label">涉及曲面?</td>
+            <td class="label">涉及曲面</td>
             <td class="ctrl"><select id="curved"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-curved">0</td>
           </tr>
@@ -94,39 +94,39 @@
 
           <tr class="group-row"><th colspan="3">2. 繪圖</th></tr>
           <tr>
-            <td class="label">有參考圖?</td>
+            <td class="label">有參考圖</td>
             <td class="ctrl"><select id="hasRef"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-ref">0</td>
           </tr>
           <tr>
-            <td class="label">涉及疊加?</td>
+            <td class="label">涉及疊加</td>
             <td class="ctrl"><select id="drawOverlay"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-drawOverlay">0</td>
           </tr>
           <tr>
-            <td class="label">膠板大小?</td>
+            <td class="label">膠板大小</td>
             <td class="ctrl"><select id="size"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-size">0</td>
           </tr>
 
           <tr class="group-row"><th colspan="3">3. 列印膠板</th></tr>
           <tr>
-            <td class="label">膠板厚度?</td>
+            <td class="label">膠板厚度</td>
             <td class="ctrl"><select id="thickness"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-thickness">0.0</td>
           </tr>
           <tr>
-            <td class="label">涉及疊加?（列印階段額外加總項）</td>
+            <td class="label">涉及疊加（列印階段額外加總項）</td>
             <td class="ctrl"><select id="printOverlay"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-printOverlay">0</td>
           </tr>
           <tr>
-            <td class="label">涉及不同厚度膠板?（列印階段額外加總項）</td>
+            <td class="label">涉及不同厚度膠板（列印階段額外加總項）</td>
             <td class="ctrl"><select id="multiThickness"><option value="">— 請選擇 —</option></select></td>
             <td class="time" id="t-multiThickness">0</td>
           </tr>
           <tr>
-            <td class="label">列印數量？<div class="hint">(輸入塊數)</div></td>
+            <td class="label">列印數量<div class="hint">(輸入塊數,如是鏡射則當2塊)</div></td>
             <td class="ctrl"><input id="printQty" type="number" inputmode="numeric" min="0" step="1" value=""></td>
             <td class="time" id="t-printTotal">0.0</td>
           </tr>
@@ -244,7 +244,7 @@
       const idxS = detectHeaderIndex(mScale);
       const dS = rowsAfterHeader(mScale, idxS).rows;
       const scale = dS.map(r => ({
-        label: String(take(r, ['比例?','比例','選項'], '')).trim(),
+        label: String(take(r, ['比例','比例','選項'], '')).trim(),
         group: String(take(r, ['分組','群組','Group'], 'A')).trim() || 'A',
         time: Number(take(r, ['時間'], 0)) || 0
       })).filter(x => x.label);
@@ -394,4 +394,5 @@
     }
   </script>
 </body>
+
 </html>
